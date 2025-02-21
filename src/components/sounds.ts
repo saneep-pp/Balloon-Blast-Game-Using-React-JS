@@ -1,0 +1,20 @@
+export const blastSound = () => {
+    const sound = new Audio('/audio/blast-sound.mp3');
+    sound.play();
+  };
+  
+  export const gameOverSound = () => {
+    const sound = new Audio('/audio/game-over.mp3');
+    sound.play();
+  };
+  
+  export const levelUpSound = () => {
+    const sound = new Audio('/audio/level-up.mp3');
+    sound.play();
+  };
+  
+  export const winSound = () => {
+    const sound = new Audio('/audio/win.mp3');
+    sound.play();
+  };
+  
