@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Balloon from './Balloon';
 import { gameOverSound, levelUpSound, blastSound } from './sounds';
 import { motion } from 'framer-motion';
+import backgroundMusic from '/audio/background-music.mp3'; // Adjust path as needed
 
 const HomePage: React.FC = () => {
   // Initialize state from localStorage or default values
@@ -28,9 +29,43 @@ const HomePage: React.FC = () => {
   const levelUpTimer = useRef<NodeJS.Timeout | null>(null);
   const gameTimer = useRef<NodeJS.Timeout | null>(null);
   const balloonInterval = useRef<NodeJS.Timeout | null>(null);
+  const backgroundAudio = useRef<HTMLAudioElement | null>(null);
 
   const balloonSpeed = Math.max(500, 2000 - level * 20);
   const maxBalloons = 1;
+
+  // Background music setup
+  useEffect(() => {
+    backgroundAudio.current = new Audio(backgroundMusic);
+    backgroundAudio.current.loop = true;
+    backgroundAudio.current.volume = 0.1;
+
+    const playPromise = backgroundAudio.current.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.log('Autoplay prevented:', error);
+      });
+    }
+
+    return () => {
+      if (backgroundAudio.current) {
+        backgroundAudio.current.pause();
+        backgroundAudio.current = null;
+      }
+    };
+  }, []);
+
+  // Pause/resume music based on game state
+  useEffect(() => {
+    if (gameOver && backgroundAudio.current) {
+      backgroundAudio.current.pause();
+    }
+    if (!gameOver && backgroundAudio.current) {
+      backgroundAudio.current.play().catch((error) => {
+        console.log('Playback error:', error);
+      });
+    }
+  }, [gameOver]);
 
   useEffect(() => {
     const startGameTimer = () => {
@@ -40,7 +75,6 @@ const HomePage: React.FC = () => {
       else if (level <= 99) newTimeLeft = 30;
       else if (level === 100) newTimeLeft = 10;
 
-      // Only set initial time if not already set from localStorage
       if (timeLeft === 0) {
         setTimeLeft(newTimeLeft);
         localStorage.setItem('timeLeft', newTimeLeft.toString());
@@ -73,7 +107,6 @@ const HomePage: React.FC = () => {
   }, [level]);
 
   useEffect(() => {
-    // Update localStorage whenever points, level, or timeLeft changes
     localStorage.setItem('points', points.toString());
     localStorage.setItem('level', level.toString());
     localStorage.setItem('timeLeft', timeLeft.toString());
@@ -92,13 +125,13 @@ const HomePage: React.FC = () => {
         return [...prev, newBalloon];
       });
       setNextId((prevId) => prevId + 1);
-    }, balloonSpeed+10);
+    }, balloonSpeed + 10);
   };
 
   const generateLevelUpBalloons = () => {
     if (balloonInterval.current) clearInterval(balloonInterval.current);
 
-    const intervals = [1000, 2000, 3000]; // 1s, 2s, 3s
+    const intervals = [1000, 2000, 3000];
     intervals.forEach((intervalTime, index) => {
       setTimeout(() => {
         setBalloons((prev) => {
@@ -158,7 +191,25 @@ const HomePage: React.FC = () => {
     setPoppedBalloons(new Set());
     setNextId(0);
     setGameOver(false);
-    localStorage.clear(); // Clear localStorage on reset
+    localStorage.clear();
+    if (backgroundAudio.current) {
+      backgroundAudio.current.currentTime = 0;
+      backgroundAudio.current.play().catch((error) => {
+        console.log('Playback error:', error);
+      });
+    }
+  };
+
+  const toggleMusic = () => {
+    if (backgroundAudio.current) {
+      if (backgroundAudio.current.paused) {
+        backgroundAudio.current.play().catch((error) => {
+          console.log('Playback error:', error);
+        });
+      } else {
+        backgroundAudio.current.pause();
+      }
+    }
   };
 
   if (gameOver) {
@@ -174,12 +225,20 @@ const HomePage: React.FC = () => {
         </motion.h1>
         <p className="text-2xl text-white mb-8">You scored {points} points!</p>
         <motion.button
-          onClick={resetGame} // Reset game and clear localStorage
+          onClick={resetGame}
           className="px-8 py-4 bg-yellow-400 rounded-full text-xl font-bold text-purple-900 hover:bg-yellow-300"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
           Play Again
+        </motion.button>
+        <motion.button
+          onClick={toggleMusic}
+          className="mt-4 px-6 py-2 bg-blue-400 rounded-full text-lg font-bold text-white hover:bg-blue-300"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          Toggle Music
         </motion.button>
       </div>
     );
@@ -193,6 +252,14 @@ const HomePage: React.FC = () => {
           Time: {level === 1 ? '∞' : timeLeft}
         </div>
         <div className="bg-blue-800/30 px-6 py-3 rounded-lg">⭐ {points}</div>
+        <motion.button
+          onClick={toggleMusic}
+          className="bg-blue-800/30 px-6 py-3 rounded-lg"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          🎵
+        </motion.button>
       </div>
 
       <div className="absolute inset-0">
