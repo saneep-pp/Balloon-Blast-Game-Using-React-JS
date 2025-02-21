@@ -1,71 +1,84 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 
 interface BalloonProps {
-  onClick: () => void;
+  id: number;
+  xPosition: number;
+  onPop: (id: number) => void;
   isPopped: boolean;
+  onRemove: (id: number) => void;
 }
 
-const Balloon: React.FC<BalloonProps> = ({ onClick, isPopped }) => {
-  const [balloonFalling, setBalloonFalling] = useState(true);
-
-  const randomTop = Math.random() * 100;  // Randomize starting position of the balloon
-  const randomLeft = Math.random() * 100;  // Randomize the position
-  const randomRotation = Math.random() * 360; // Randomize rotation to make it more dynamic
-
-  const balloonStyle = {
-    position: 'absolute',
-    top: `${randomTop}vh`,
-    left: `${randomLeft}vw`,
-    backgroundColor: getRandomColor(),
-    width: '10vw', // Responsive width based on viewport width
-    height: '14vw', // Responsive height based on viewport width
-    zIndex: 5, // Keep the balloon above background but below explosion
-  };
+const Balloon: React.FC<BalloonProps> = ({ id, xPosition, onPop, isPopped, onRemove }) => {
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#FF9F68'];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  const floatDuration = 8 + Math.random() * 4; // Random fall speed
 
   return (
     <motion.div
-      className="cursor-pointer rounded-full"
-      style={balloonStyle}
-      onClick={onClick}
-      initial={{
-        opacity: 1,
-        y: '-20vh', // Start above the screen
-        rotate: randomRotation,
+      className="absolute cursor-pointer"
+      style={{
+        left: `${xPosition}%`,
+        width: '8vw',
+        height: '10vw',
+        filter: 'drop-shadow(0 10px 8px rgba(0,0,0,0.2))',
       }}
-      animate={{
-        y: balloonFalling && !isPopped ? '100vh' : '0vh',  // Make balloon fall
-        opacity: isPopped ? 0 : 1, // Hide balloon when popped
-        scale: isPopped ? 0 : 1, // Shrink balloon when popped
-        rotate: randomRotation,
-      }}
+      initial={{ y: '-20vh', opacity: 1, scale: 1 }} // Start above screen
+      animate={
+        isPopped
+          ? { y: '-100vh', opacity: 0, scale: 0 } // Popped: rise and fade
+          : { y: '120vh' } // Not popped: fall to bottom
+      }
       transition={{
-        type: 'spring',
-        stiffness: 10,  // Adjusted to make it fall slower
-        damping: 40,  // Adjusted for slower bounce effect
-        duration: 20,  // Slow falling duration
+        y: {
+          duration: isPopped ? 0.5 : floatDuration,
+          ease: isPopped ? 'easeIn' : 'linear',
+          repeat: isPopped ? 0 : Infinity, // Loop falling animation
+          repeatType: 'loop',
+        },
+        opacity: { duration: isPopped ? 0.5 : 0 },
+        scale: { duration: isPopped ? 0.5 : 0 },
       }}
+      onAnimationComplete={(definition) => {
+        // Remove balloon after pop animation finishes
+        if (isPopped && definition.y === '-100vh') {
+          onRemove(id);
+        }
+      }}
+      onClick={() => !isPopped && onPop(id)} // Pop only if not already popped
     >
+      {/* Sway animation */}
+      <motion.div
+        animate={{ x: ['0%', '5%', '-5%', '0%'] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <svg viewBox="0 0 100 140">
+          <path
+            d="M50 15C60 15 70 25 70 40C70 80 50 120 50 120C50 120 30 80 30 40C30 25 40 15 50 15Z"
+            fill={randomColor}
+          />
+          <path
+            d="M50 120L55 130L45 130Z"
+            fill="#666"
+            className="transition-all duration-300"
+          />
+        </svg>
+      </motion.div>
+
+      {/* Pop effect */}
       {isPopped && (
         <motion.div
-          className="absolute rounded-full bg-orange-500"
-          initial={{ scale: 1 }}
-          animate={{ scale: [1, 1.5, 0], opacity: [1, 0.7, 0] }}
+          className="absolute inset-0 flex justify-center items-center"
+          initial={{ scale: 0 }}
+          animate={{ scale: [0, 2, 0], opacity: [1, 0.5, 0] }}
           transition={{ duration: 0.5 }}
-          style={{
-            width: '100%',
-            height: '100%',
-            zIndex: 10,  // Explosion on top
-          }}
-        />
+        >
+          <div className="w-4 h-4 bg-yellow-400 rounded-full absolute" />
+          <div className="w-4 h-4 bg-orange-500 rounded-full absolute" />
+        </motion.div>
       )}
     </motion.div>
   );
-};
-
-const getRandomColor = () => {
-  const colors = ['red', 'blue', 'green', 'yellow', 'pink', 'purple'];
-  return colors[Math.floor(Math.random() * colors.length)];
 };
 
 export default Balloon;

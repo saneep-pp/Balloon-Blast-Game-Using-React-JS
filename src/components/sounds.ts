@@ -1,5 +1,5 @@
 export const blastSound = () => {
-    const sound = new Audio('/audio/blast-sound.mp3');
+    const sound = new Audio('/audio/blast-sound.wav');
     sound.play();
   };
   
@@ -9,7 +9,7 @@ export const blastSound = () => {
   };
   
   export const levelUpSound = () => {
-    const sound = new Audio('/audio/level-up.mp3');
+    const sound = new Audio('/audio/level-up.wav');
     sound.play();
   };
   
